@@ -7,7 +7,7 @@ struct WeightMatrices {
 // Service definition for compute node
 service compute {
     // Initialize and train an MLP model with given weights and training file
-    WeightMatrices trainMLP(1: WeightMatrices weights, 2: string trainingFile, 3: double eta, 4: i32 epochs),
+    WeightMatrices trainMLP(1: WeightMatrices weights, 2: string data 3: double eta, 4: i32 epochs),
     
     void loadInjection();
     

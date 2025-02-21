@@ -19,11 +19,11 @@ all_structs = []
 
 
 class Iface(object):
-    def trainMLP(self, weights, trainingFile, eta, epochs):
+    def trainMLP(self, weights, data, eta, epochs):
         """
         Parameters:
          - weights
-         - trainingFile
+         - data
          - eta
          - epochs
 
@@ -44,23 +44,23 @@ class Client(Iface):
             self._oprot = oprot
         self._seqid = 0
 
-    def trainMLP(self, weights, trainingFile, eta, epochs):
+    def trainMLP(self, weights, data, eta, epochs):
         """
         Parameters:
          - weights
-         - trainingFile
+         - data
          - eta
          - epochs
 
         """
-        self.send_trainMLP(weights, trainingFile, eta, epochs)
+        self.send_trainMLP(weights, data, eta, epochs)
         return self.recv_trainMLP()
 
-    def send_trainMLP(self, weights, trainingFile, eta, epochs):
+    def send_trainMLP(self, weights, data, eta, epochs):
         self._oprot.writeMessageBegin('trainMLP', TMessageType.CALL, self._seqid)
         args = trainMLP_args()
         args.weights = weights
-        args.trainingFile = trainingFile
+        args.data = data
         args.eta = eta
         args.epochs = epochs
         args.write(self._oprot)
@@ -168,7 +168,7 @@ class Processor(Iface, TProcessor):
         iprot.readMessageEnd()
         result = trainMLP_result()
         try:
-            result.success = self._handler.trainMLP(args.weights, args.trainingFile, args.eta, args.epochs)
+            result.success = self._handler.trainMLP(args.weights, args.data, args.eta, args.epochs)
             msg_type = TMessageType.REPLY
         except TTransport.TTransportException:
             raise
@@ -238,16 +238,16 @@ class trainMLP_args(object):
     """
     Attributes:
      - weights
-     - trainingFile
+     - data
      - eta
      - epochs
 
     """
 
 
-    def __init__(self, weights=None, trainingFile=None, eta=None, epochs=None,):
+    def __init__(self, weights=None, data=None, eta=None, epochs=None,):
         self.weights = weights
-        self.trainingFile = trainingFile
+        self.data = data
         self.eta = eta
         self.epochs = epochs
 
@@ -268,7 +268,7 @@ class trainMLP_args(object):
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.STRING:
-                    self.trainingFile = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                    self.data = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
@@ -295,9 +295,9 @@ class trainMLP_args(object):
             oprot.writeFieldBegin('weights', TType.STRUCT, 1)
             self.weights.write(oprot)
             oprot.writeFieldEnd()
-        if self.trainingFile is not None:
-            oprot.writeFieldBegin('trainingFile', TType.STRING, 2)
-            oprot.writeString(self.trainingFile.encode('utf-8') if sys.version_info[0] == 2 else self.trainingFile)
+        if self.data is not None:
+            oprot.writeFieldBegin('data', TType.STRING, 2)
+            oprot.writeString(self.data.encode('utf-8') if sys.version_info[0] == 2 else self.data)
             oprot.writeFieldEnd()
         if self.eta is not None:
             oprot.writeFieldBegin('eta', TType.DOUBLE, 3)
@@ -327,7 +327,7 @@ all_structs.append(trainMLP_args)
 trainMLP_args.thrift_spec = (
     None,  # 0
     (1, TType.STRUCT, 'weights', [WeightMatrices, None], None, ),  # 1
-    (2, TType.STRING, 'trainingFile', 'UTF8', None, ),  # 2
+    (2, TType.STRING, 'data', 'UTF8', None, ),  # 2
     (3, TType.DOUBLE, 'eta', None, None, ),  # 3
     (4, TType.I32, 'epochs', None, None, ),  # 4
 )
