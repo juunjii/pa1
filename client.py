@@ -31,14 +31,14 @@
 import sys
 import glob
 sys.path.append('gen-py')
-sys.path.insert(0, glob.glob('../../thrift-0.19.0/lib/py/build/lib*')[0])
+sys.path.insert(0, glob.glob('../thrift-0.19.0/lib/py/build/lib*')[0])
+# sys.path.insert(0, "/home/cheh0011/.local/lib/python3.x/site-packages")
 
 ## 
 ##  Make sure to import the service and types 
 ##  defined in the thrift file
 ## 
-from compute_node import compute
-from compute_node.ttypes import WeightMatrices
+
 
 from thrift import Thrift
 from thrift.transport import TSocket
@@ -50,15 +50,15 @@ from compute_node import *
 from MLP import *
 
 def main():
-    obj = ComputeNodeHandler()
+    # obj = ComputeNodeHandler()
 
-    weights = WeightMatrices(
-            V=[[0.1, 0.2], [0.3, 0.4]],  # Example V matrix
-            W=[[0.5, 0.6], [0.7, 0.8]]   # Example W matrix
-    )
+    # weights = WeightMatrices(
+    #         V=[[0.1, 0.2], [0.3, 0.4]],  # Example V matrix
+    #         W=[[0.5, 0.6], [0.7, 0.8]]   # Example W matrix
+    # )
 
-    file = "letters/train_letters1.txt"
-    obj.trainMLP(weights, file, 0.001, 15)
+    # file = "letters/train_letters1.txt"
+    # obj.trainMLP(weights, file, 0.001, 15)
 
     # # read ip and port from command line
     # if len(sys.argv) < 3:
