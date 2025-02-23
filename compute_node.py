@@ -4,6 +4,7 @@ import sys
 import time
 import random
 import glob
+import os 
 
 import numpy as np
 sys.path.append('gen-py')
@@ -21,31 +22,38 @@ from ML import *
 
 class ComputeNodeHandler:
 
-    def __init__(self):
-        pass
     # def __init__(self, load_probability):
     #     self.load_probability = float(load_probability)
 
     def trainMLP(self, weights, data, eta, epochs):
         model = mlp()
 
+        # Unpacking tuple
         initial_V, initial_W = weights
 
+        # Initialize model before training
         initialized_model = model.init_training_model(data, initial_V, initial_W)
         if (initialized_model == False):
             raise Exception(f"Model initialization failed with file {data}")
-        
-        error_rate = model.train(eta, epochs)
-        if (error_rate == -1):
+
+        # Train
+        training_error_rate = model.train(eta, epochs)
+        if (training_error_rate == -1):
             raise Exception("Model training failed!")
-        
+        print(f"-----Training Error Rate: {training_error_rate}")
+
         trained_V, trained_W = model.get_weights()
 
-        gradient_V = calc_gradient(trained_V, initial_V)
-        gradient_W = calc_gradient(trained_W, initial_W)
-
+        # Calculate gradient from weights post model training
+        gradient_V = calc_gradient(trained_V, initial_V) 
+        gradient_W = calc_gradient(trained_W, initial_W) 
+        
+        # Validating
+        validation_file = "letters/validate_letters.txt"
+        error_rate = model.validate(validation_file)
+        print(f"-----Validation Error Rate: {error_rate}")
+           
         return WeightMatrices(V=gradient_V.tolist(), W=gradient_W.tolist())
-
 
     def loadInjection(self):
         if random.random() < self.load_probability:
@@ -57,20 +65,19 @@ class ComputeNodeHandler:
 
 if __name__ == '__main__':
 
-
     obj = ComputeNodeHandler()
 
     mlp_test = mlp()
 
-    
-
     file = "letters/train_letters1.txt"
-
+    
     mlp.init_training_random(mlp_test, file, 26, 20)
 
-    weights = mlp.get_weights(mlp_test)
+    weights = mlp_test.get_weights()
 
-    obj.trainMLP(weights, file, 0.001, 15)
+    trained_model = obj.trainMLP(weights, file, 0.001, 15)
+
+   
 
 
     # handler = ComputeNodeHandler()
