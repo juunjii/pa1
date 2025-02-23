@@ -18,6 +18,18 @@ from ML import mlp, scale_matricies, sum_matricies, calc_gradient
 
 class CoordinatorHandler:
     def __init__(self, scheduling_policy):
+        self.scheduling_policy = scheduling_policy
+        self.compute_nodes = []
+        self.get_compute_nodes()
+
+    def get_compute_nodes(self):
+        pass
         
+    def connet_compute_node_server(self, host, port):
+        pass
 
-
+    def scheduling_policy(self):
+        pass
+   
+    def train(self, dir, rounds, epochs, h, k, eta):
+        pass

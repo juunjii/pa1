@@ -30,9 +30,6 @@ class Iface(object):
         """
         pass
 
-    def loadInjection(self):
-        pass
-
     def rejectTask(self):
         pass
 
@@ -82,30 +79,6 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "trainMLP failed: unknown result")
 
-    def loadInjection(self):
-        self.send_loadInjection()
-        self.recv_loadInjection()
-
-    def send_loadInjection(self):
-        self._oprot.writeMessageBegin('loadInjection', TMessageType.CALL, self._seqid)
-        args = loadInjection_args()
-        args.write(self._oprot)
-        self._oprot.writeMessageEnd()
-        self._oprot.trans.flush()
-
-    def recv_loadInjection(self):
-        iprot = self._iprot
-        (fname, mtype, rseqid) = iprot.readMessageBegin()
-        if mtype == TMessageType.EXCEPTION:
-            x = TApplicationException()
-            x.read(iprot)
-            iprot.readMessageEnd()
-            raise x
-        result = loadInjection_result()
-        result.read(iprot)
-        iprot.readMessageEnd()
-        return
-
     def rejectTask(self):
         self.send_rejectTask()
         return self.recv_rejectTask()
@@ -138,7 +111,6 @@ class Processor(Iface, TProcessor):
         self._handler = handler
         self._processMap = {}
         self._processMap["trainMLP"] = Processor.process_trainMLP
-        self._processMap["loadInjection"] = Processor.process_loadInjection
         self._processMap["rejectTask"] = Processor.process_rejectTask
         self._on_message_begin = None
 
@@ -181,29 +153,6 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("trainMLP", msg_type, seqid)
-        result.write(oprot)
-        oprot.writeMessageEnd()
-        oprot.trans.flush()
-
-    def process_loadInjection(self, seqid, iprot, oprot):
-        args = loadInjection_args()
-        args.read(iprot)
-        iprot.readMessageEnd()
-        result = loadInjection_result()
-        try:
-            self._handler.loadInjection()
-            msg_type = TMessageType.REPLY
-        except TTransport.TTransportException:
-            raise
-        except TApplicationException as ex:
-            logging.exception('TApplication exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = ex
-        except Exception:
-            logging.exception('Unexpected exception in handler')
-            msg_type = TMessageType.EXCEPTION
-            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
-        oprot.writeMessageBegin("loadInjection", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -392,92 +341,6 @@ class trainMLP_result(object):
 all_structs.append(trainMLP_result)
 trainMLP_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [WeightMatrices, None], None, ),  # 0
-)
-
-
-class loadInjection_args(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('loadInjection_args')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(loadInjection_args)
-loadInjection_args.thrift_spec = (
-)
-
-
-class loadInjection_result(object):
-
-
-    def read(self, iprot):
-        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
-            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
-            return
-        iprot.readStructBegin()
-        while True:
-            (fname, ftype, fid) = iprot.readFieldBegin()
-            if ftype == TType.STOP:
-                break
-            else:
-                iprot.skip(ftype)
-            iprot.readFieldEnd()
-        iprot.readStructEnd()
-
-    def write(self, oprot):
-        if oprot._fast_encode is not None and self.thrift_spec is not None:
-            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
-            return
-        oprot.writeStructBegin('loadInjection_result')
-        oprot.writeFieldStop()
-        oprot.writeStructEnd()
-
-    def validate(self):
-        return
-
-    def __repr__(self):
-        L = ['%s=%r' % (key, value)
-             for key, value in self.__dict__.items()]
-        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
-
-    def __eq__(self, other):
-        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
-
-    def __ne__(self, other):
-        return not (self == other)
-all_structs.append(loadInjection_result)
-loadInjection_result.thrift_spec = (
 )
 
 

@@ -9,8 +9,6 @@ service compute {
     // Initialize and train an MLP model with given weights and training file
     WeightMatrices trainMLP(1: WeightMatrices weights, 2: string data 3: double eta, 4: i32 epochs),
     
-    void loadInjection();
-    
-    // Get current load probability
+    // Determine whether tasks are rejected
     bool rejectTask();
 }

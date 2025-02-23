@@ -47,63 +47,58 @@ from thrift.protocol import TBinaryProtocol
 
 
 from compute_node import *
+from coordinator import coordinator
 from MLP import *
 
 def main():
-    # obj = ComputeNodeHandler()
+    if len(sys.argv) != 6:
+        print("Usage: python3 client.py <coordinator_ip> <coordinator_port> <dir_path> <rounds> <epochs>")
+        sys.exit(1)
 
-    # weights = WeightMatrices(
-    #         V=[[0.1, 0.2], [0.3, 0.4]],  # Example V matrix
-    #         W=[[0.5, 0.6], [0.7, 0.8]]   # Example W matrix
-    # )
+    # Parse command line arguments
+    coordinator_ip = sys.argv[1]
+    coordinator_port = int(sys.argv[2])
+    dir_path = sys.argv[3]
+    rounds = int(sys.argv[4])
+    epochs = int(sys.argv[5])
 
-    # file = "letters/train_letters1.txt"
-    # obj.trainMLP(weights, file, 0.001, 15)
+    # Parameters for training MLP
+    H = 20  # number of hidden units
+    K = 26  # number of possible outcomes (26 letters)
+    eta = 0.001  # learning rate
 
-    # # read ip and port from command line
-    # if len(sys.argv) < 3:
-    #     print("python3 ex_client.py <ip> <port>")
-    #     return
-    # ip = sys.argv[1]
-    # port = sys.argv[2]
+    try: 
+        # Make socket
+        transport = TSocket.TSocket(coordinator_ip, coordinator_port)
 
-    # # Thrift client boilerplate
-    # # Enjoy the enthusiastic comments included by the thrift developers
+        # Buffering is critical. Raw sockets are very slow
+        transport = TTransport.TBufferedTransport(transport)
 
-    # # Make socket
-    # transport = TSocket.TSocket(ip, port)
+        # Wrap in a protocol
+        protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
-    # # Buffering is critical. Raw sockets are very slow
-    # transport = TTransport.TBufferedTransport(transport)
+        # Create a client to use the protocol encoder
+        client = coordinator.Client(protocol)
 
-    # # Wrap in a protocol
-    # protocol = TBinaryProtocol.TBinaryProtocol(transport)
+        # Connect to coordinator node 
+        transport.open()
 
-    # # Create a client to use the protocol encoder
-    # client = compute.Client(protocol)
+        print("\nTraining in progress...")
 
-    # # Connect!
-    # transport.open()
+        # Call the train function on the coordinator
+        validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
 
-    # client.ping()
-    
-    # # Simple input loop to read a string from the client
-    # # Calls "add_the" on the server and gets a response
-    # usr_input = ""
-    # while usr_input != "exit":
-        
-    #     print("Enter a string to modify")
-        
-    #     usr_input = input(">> ")
-    #     if usr_input == "exit":
-    #         break
+        print(f"\nTraining complete!")
+        print(f"Final validation error: {validation_error:.4f}")
 
-    #     # return type is of strint()
-    #     _response = client.add_the(usr_input)
-    #     print("Server response [%d letters]: %s"%(_response.number, _response.words))
+        # Close!
+        transport.close()
 
-    # # Close!
-    # transport.close()
+    except Exception as e:
+        print(f"Error: {e}")
+        if 'transport' in locals():
+            transport.close()
+        sys.exit(1)
 
 
 if __name__ == '__main__':

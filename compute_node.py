@@ -78,19 +78,20 @@ def test(prob):
     weights = mlp_test.get_weights()
 
     obj.trainMLP(weights, file, 0.001, 15)
-    
+
 def main():
-    # read ip and port from command line
+    # Read ip and port from command line
     if len(sys.argv) < 3:
         print("python3 ex_client.py <port> <load_probability>")
-        return
+        sys.exit(1)
     
+    # Parse command line arguments
     port = sys.argv[1]
     load_probability = float(sys.argv[2])
 
     if (load_probability < 0) or (load_probability > 1):
         print("Load probability must be a value between 0 and 1.")
-        return
+        sys.exit(1)
     
     test(load_probability)
 
