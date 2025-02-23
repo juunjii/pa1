@@ -9,5 +9,5 @@ service coordinator {
 
     void parse_compute_nodes(self):
 
-    def scheduling_policy(self):
+    def work_scheduling(self):
 }

@@ -24,12 +24,12 @@ class CoordinatorHandler:
 
     '''
     Parse list of compute nodes from text file; 
-    Gets their ip and port
+    Gets compute nodes' respective ip and port
     '''
     def parse_compute_nodes(self):
         try:
-            with open('compute_nodes.txt', 'r') as f:
-                for line in f:
+            with open('compute_nodes.txt', 'r') as file:
+                for line in file:
                     host, port = line.strip().split(',')
                     self.compute_nodes.append((host, int(port)))
         except Exception as e:
@@ -45,7 +45,8 @@ class CoordinatorHandler:
             transport = TSocket.TSocket(host, port)
             transport = TTransport.TBufferedTransport(transport)
             protocol = TBinaryProtocol.TBinaryProtocol(transport)
-            client = compute.Client(protocol)
+            # Allows remote procedures on compute node server
+            client = compute.Client(protocol) 
             transport.open()
 
         except Exception as e:
@@ -58,10 +59,41 @@ class CoordinatorHandler:
 
     '''
     Handles work scheduling on compute nodes following policies: 
-    '1' - Random Scheduling; '2' - Load-Balancing 
+    '1' - Random Scheduling: Injecting Load (delay before task execution)
+    '2' - Load-Balancing: Injecting load & rejects task 
+    (If compute node rejects job, another compute node gets the job)
+
+    Returns: (host, ip) of available compute node
     '''
-    def scheduling_policy(self):
-        pass
+    def work_scheduling(self):
+        # Random scheduling - Random node gets job
+        if self.scheduling_policy == 1:
+            return random.choice(self.compute_nodes)
+        else:
+            # Load Balancing 
+            for node in self.compute_nodes:
+                # Connect to compute node
+                try:
+                    # Unpack tuple 
+                    transport = TSocket.TSocket(node[0], node[1])
+                    transport = TTransport.TBufferedTransport(transport)
+                    protocol = TBinaryProtocol.TBinaryProtocol(transport)
+                    client = compute.Client(protocol)
+                    transport.open()
+                    
+                    # If compute node rejects job, another compute node gets the job
+                    if client.rejectTask():
+                        transport.close()
+                        return random.choice(self.compute_nodes)
+                    else:
+                        transport.close()
+                        return node
+                    
+                except Exception as e:
+                    print(f"Error: {e}")
+                    if 'transport' in locals():
+                        transport.close()
+                    sys.exit(1)
    
     def train(self, dir, rounds, epochs, h, k, eta):
         pass
