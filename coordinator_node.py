@@ -96,7 +96,7 @@ class CoordinatorHandler:
                     sys.exit(1)
    
     def train(self, dir, rounds, epochs, h, k, eta):
-        pass
+        
 
 if __name__ == '__main__':
     obj = CoordinatorHandler(1)

@@ -26,8 +26,12 @@ class ComputeNodeHandler:
     def __init__(self, load_probability):
         self.load_probability = float(load_probability)
 
+    '''
+    Receive weights matrices and a training data filename from the
+    coordinator node to perform a round of training. 
+    '''
     def trainMLP(self, weights, data, eta, epochs):
-        
+        # Delays based on load probability 
         self.loadInjection()
 
         model = mlp()
@@ -46,6 +50,7 @@ class ComputeNodeHandler:
             raise Exception("Model training failed!")
         print(f"-----Training Error Rate: {training_error_rate}")
 
+        # New weights
         trained_V, trained_W = model.get_weights()
 
         # Calculate gradient from weights post model training
@@ -59,10 +64,18 @@ class ComputeNodeHandler:
            
         return WeightMatrices(V=gradient_V.tolist(), W=gradient_W.tolist())
 
+    '''
+    Simulate delay before executing tasks in the compute node
+    based on load probability.
+    '''
     def loadInjection(self):
         if random.random() < self.load_probability:
             time.sleep(3)  # 3-second delay
     
+    '''
+    In load-balancing scheduling, compute  nodes will have a ‘load 
+    probability’ chance to reject a task 
+    '''
     def rejectTask(self):
         return random.random() < self.load_probability
 
