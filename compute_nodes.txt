@@ -1,1 +1,2 @@
-localhost,9091
+localhost, 9091
+csel-kh1250-01.cselabs.umn.edu, 9092
