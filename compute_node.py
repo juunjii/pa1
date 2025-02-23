@@ -10,22 +10,26 @@ import numpy as np
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift-0.19.0/lib/py/build/lib*')[0])
 
+from thrift import Thrift
 from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 from thrift.server import TServer
 
-# from compute_node import compute
+from compute import compute
 from compute.ttypes import WeightMatrices
 
 from ML import *
 
 class ComputeNodeHandler:
 
-    # def __init__(self, load_probability):
-    #     self.load_probability = float(load_probability)
+    def __init__(self, load_probability):
+        self.load_probability = float(load_probability)
 
     def trainMLP(self, weights, data, eta, epochs):
+        
+        self.loadInjection()
+
         model = mlp()
 
         # Unpacking tuple
@@ -62,10 +66,8 @@ class ComputeNodeHandler:
     def rejectTask(self):
         return random.random() < self.load_probability
 
-
-if __name__ == '__main__':
-
-    obj = ComputeNodeHandler()
+def test(prob):
+    obj = ComputeNodeHandler(prob)
 
     mlp_test = mlp()
 
@@ -75,25 +77,40 @@ if __name__ == '__main__':
 
     weights = mlp_test.get_weights()
 
-    trained_model = obj.trainMLP(weights, file, 0.001, 15)
+    obj.trainMLP(weights, file, 0.001, 15)
+    
+def main():
+    # read ip and port from command line
+    if len(sys.argv) < 3:
+        print("python3 ex_client.py <port> <load_probability>")
+        return
+    
+    port = sys.argv[1]
+    load_probability = float(sys.argv[2])
 
-   
+    if (load_probability < 0) or (load_probability > 1):
+        print("Load probability must be a value between 0 and 1.")
+        return
+    
+    test(load_probability)
 
-
-    # handler = ComputeNodeHandler()
+    # handler = ComputeNodeHandler(load_probability)
     # processor = compute.Processor(handler)
-    # transport = TSocket.TServerSocket(host='127.0.0.1', port=9091)
+    # transport = TSocket.TServerSocket(host='127.0.0.1', port=port)
     # tfactory = TTransport.TBufferedTransportFactory()
     # pfactory = TBinaryProtocol.TBinaryProtocolFactory()
 
     # server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
 
-    # You could do one of these for a multithreaded server
-    # server = TServer.TThreadedServer(
-    #     processor, transport, tfactory, pfactory)
-    # server = TServer.TThreadPoolServer(
-    #     processor, transport, tfactory, pfactory)
-
-    # print('Starting the server...')
+    # print('Starting compute node...')
     # server.serve()
     # print('done.')
+
+
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except Thrift.TException as tx:
+        print('%s' % tx.message)
