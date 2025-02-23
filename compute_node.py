@@ -35,7 +35,7 @@ class ComputeNodeHandler:
 
         model = mlp()
 
-        # Unpacking tuple
+        # Unpacking 
         initial_V, initial_W = weights.V, weights.W
 
         # Initialize model before training
