@@ -45,22 +45,23 @@ from thrift.transport import TSocket
 from thrift.transport import TTransport
 from thrift.protocol import TBinaryProtocol
 
-
 from compute_node import *
+from compute import compute
+from compute.ttypes import WeightMatrices
 from coordinator import coordinator
-from MLP import *
+from ML import *
 
 def main():
-    if len(sys.argv) != 6:
-        print("Usage: python3 client.py <coordinator_ip> <coordinator_port> <dir_path> <rounds> <epochs>")
-        sys.exit(1)
+    # if len(sys.argv) != 6:
+    #     print("Usage: python3 client.py <coordinator_ip> <coordinator_port> <dir_path> <rounds> <epochs>")
+    #     sys.exit(1)
 
-    # Parse command line arguments
-    coordinator_ip = sys.argv[1]
-    coordinator_port = int(sys.argv[2])
-    dir_path = sys.argv[3]
-    rounds = int(sys.argv[4])
-    epochs = int(sys.argv[5])
+    # # Parse command line arguments
+    # coordinator_ip = sys.argv[1]
+    # coordinator_port = int(sys.argv[2])
+    # dir_path = sys.argv[3]
+    # rounds = int(sys.argv[4])
+    # epochs = int(sys.argv[5])
 
     # Parameters for training MLP
     H = 20  # number of hidden units
@@ -69,7 +70,8 @@ def main():
 
     try: 
         # Make socket
-        transport = TSocket.TSocket(coordinator_ip, coordinator_port)
+        # transport = TSocket.TSocket(coordinator_ip, coordinator_port)
+        transport = TSocket.TSocket("127.0.0.1", 9111)
 
         # Buffering is critical. Raw sockets are very slow
         transport = TTransport.TBufferedTransport(transport)
@@ -78,18 +80,24 @@ def main():
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
         # Create a client to use the protocol encoder
-        client = coordinator.Client(protocol)
+        client = compute.Client(protocol)
 
         # Connect to coordinator node 
         transport.open()
 
         print("\nTraining in progress...")
 
-        # Call the train function on the coordinator
-        validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
 
-        print(f"\nTraining complete!")
-        print(f"Final validation error: {validation_error:.4f}")
+        model = mlp()
+        model.init_training_random("letters/train_letters1.txt", 26, 20)
+        weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
+
+        client.trainMLP(weights,"letters/train_letters1.txt", 0.0001, 75)
+        # # Call the train function on the coordinator
+        # validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
+
+        # print(f"\nTraining complete!")
+        # print(f"Final validation error: {validation_error:.4f}")
 
         # Close!
         transport.close()
@@ -104,5 +112,12 @@ def main():
 if __name__ == '__main__':
     try:
         main()
+        # Phase 1 Tester
+        # model = mlp()
+        # model.init_training_random("letters/train_letters1.txt", 26, 20)
+        # weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
+        # compute = ComputeNodeHandler(0)
+        # compute.trainMLP(weights,"letters/train_letters1.txt", 0.0001, 75)
+
     except Thrift.TException as tx:
         print('%s' % tx.message)

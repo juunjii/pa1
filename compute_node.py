@@ -6,7 +6,6 @@ import random
 import glob
 import os 
 
-import numpy as np
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift-0.19.0/lib/py/build/lib*')[0])
 
@@ -37,7 +36,7 @@ class ComputeNodeHandler:
         model = mlp()
 
         # Unpacking tuple
-        initial_V, initial_W = weights
+        initial_V, initial_W = weights.V, weights.W
 
         # Initialize model before training
         initialized_model = model.init_training_model(data, initial_V, initial_W)
@@ -79,18 +78,6 @@ class ComputeNodeHandler:
     def rejectTask(self):
         return random.random() < self.load_probability
 
-def test(prob):
-    obj = ComputeNodeHandler(prob)
-
-    mlp_test = mlp()
-
-    file = "letters/train_letters1.txt"
-    
-    mlp.init_training_random(mlp_test, file, 26, 20)
-
-    weights = mlp_test.get_weights()
-
-    obj.trainMLP(weights, file, 0.001, 15)
 
 def main():
     # Read ip and port from command line
@@ -106,21 +93,17 @@ def main():
         print("Load probability must be a value between 0 and 1.")
         sys.exit(1)
     
-    test(load_probability)
+    handler = ComputeNodeHandler(load_probability)
+    processor = compute.Processor(handler)
+    transport = TSocket.TServerSocket(host='127.0.0.1', port=port)
+    tfactory = TTransport.TBufferedTransportFactory()
+    pfactory = TBinaryProtocol.TBinaryProtocolFactory()
 
-    # handler = ComputeNodeHandler(load_probability)
-    # processor = compute.Processor(handler)
-    # transport = TSocket.TServerSocket(host='127.0.0.1', port=port)
-    # tfactory = TTransport.TBufferedTransportFactory()
-    # pfactory = TBinaryProtocol.TBinaryProtocolFactory()
+    server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
 
-    # server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
-
-    # print('Starting compute node...')
-    # server.serve()
-    # print('done.')
-
-
+    print('Starting compute node...')
+    server.serve()
+    print('done.')
 
 
 if __name__ == '__main__':
