@@ -7,7 +7,7 @@ import glob
 import os 
 
 sys.path.append('gen-py')
-sys.path.insert(0, glob.glob('../thrift-0.19.0/lib/py/build/lib*')[0])
+sys.path.insert(0, glob.glob('../thrift-0.21.0/lib/py/build/lib*')[0])
 
 from thrift import Thrift
 from thrift.transport import TSocket
