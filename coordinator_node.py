@@ -165,16 +165,38 @@ class CoordinatorHandler:
                 weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
 
                 gradient = client.trainMLP(weights, training_data, eta, epochs)
-
-
-
+                with mutex:
+                    shared_gradient_V += np.array(gradient.V)
+                    shared_gradient_W += np.array(gradient.W)
             except:
                 pass
 
         for r in range(rounds):
             # Added extra rows to account for bias weights
-            shared_gradient_V = np.zeros(h + 1,k)
-            shared_gradient_W = np.zeros(k + 1, h)
+            shared_gradient_V = np.zeros((h + 1,k))
+            shared_gradient_W = np.zeros((k + 1, h))
+            # create a lock for accessing the shared gradient vars
+            mutex = threading.Lock()
+
+            threads = []
+            num_nodes = len(self.compute_nodes)
+
+            # get the nodes going through the queue
+            for i in range(num_nodes):
+                thread = threading.Thread(target=worker_thread)
+                threads.append(thread)
+                thread.start()
+
+            # wait for threads to work through the queue
+            for thread in threads:
+                thread.join()
+            
+            shared_gradient_V = shared_gradient_V / num_nodes
+            shared_gradient_W = shared_gradient_W / num_nodes
+            model.update_weights(shared_gradient_V, shared_gradient_W)
+        return model.validate()
+
+
 
         
 
@@ -182,4 +204,5 @@ if __name__ == '__main__':
     obj = CoordinatorHandler(1)
 
 
-    obj.train("letters", 10, 15, 4, 5, 7)
+    print(obj.train("letters", 25, 15, 20, 26, .0001))
+    print(obj.train("letters", 15, 50, 24, 26, .0001))
