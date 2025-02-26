@@ -21,6 +21,7 @@ from thrift.server import TServer
 from coordinator import coordinator
 from coordinator.ttypes import WeightMatrices
 from compute import compute
+import random
 from ML import *
 # from compute.ttypes import WeightMatrices as ComputeWeightMatrices
 
@@ -144,7 +145,7 @@ class CoordinatorHandler:
         # client, transport = self.connet_compute_node_server()
 
         work_queue = self.populate_queue(dir)
-        print(work_queue)
+        print(f'Work queue: {work_queue}')
                 
         # Randomly choose training set to initialize model
         random_training_set = random.choice(work_queue)
@@ -183,10 +184,15 @@ class CoordinatorHandler:
 
                 try:
                     if work_queue:
-                        print(len(work_queue))
-                        training_data = work_queue.pop()
+                        # print(f'Work queue: {len(work_queue)}')
+                        # training_data = work_queue.pop()
+                        random_number = random.randint(0, 10)
+                        queue_list = list(work_queue)
+                        training_data = queue_list[random_number]
+                        print(f"##Training data on {training_data}")
                     else:
                         print("Work queue empty")
+                        return
 
                     # Get ip, port of available nodes
                     ip, port = self.work_scheduling()
@@ -207,16 +213,19 @@ class CoordinatorHandler:
 
 
                     with mutex:
+                        # Update the sahred gradient 
                         shared_gradient_V += sum_matricies(shared_gradient_V, gradient.V)
                         shared_gradient_W += sum_matricies(shared_gradient_W, gradient.W)
                         jobs_completed += 1
+                        # model.update_weights(shared_gradient_V, shared_gradient_W)
+
 
                     transport.close()
 
                 except Exception as e:
                     print(f"Error in worker: {e}")
                     # Failed job goes back into queue
-                    work_queue.append(training_data) 
+                    # work_queue.append(training_data) 
                     if 'transport' in locals():
                         transport.close()
 
