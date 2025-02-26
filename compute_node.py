@@ -56,7 +56,7 @@ class ComputeNodeHandler:
         gradient_V = calc_gradient(trained_V, initial_V) 
         gradient_W = calc_gradient(trained_W, initial_W) 
         
-        # Validating
+        # Validation
         validation_file = "letters/validate_letters.txt"
         error_rate = model.validate(validation_file)
         print(f"-----Validation Error Rate: {error_rate}")
@@ -82,7 +82,7 @@ class ComputeNodeHandler:
 def main():
     # Read ip and port from command line
     if len(sys.argv) < 3:
-        print("python3 ex_client.py <port> <load_probability>")
+        print("python3 compute_node.py <port> <load_probability>")
         sys.exit(1)
     
     # Parse command line arguments
@@ -95,7 +95,7 @@ def main():
     
     handler = ComputeNodeHandler(load_probability)
     processor = compute.Processor(handler)
-    transport = TSocket.TServerSocket(host='127.0.0.1', port=port)
+    transport = TSocket.TServerSocket(port=port)
     tfactory = TTransport.TBufferedTransportFactory()
     pfactory = TBinaryProtocol.TBinaryProtocolFactory()
 

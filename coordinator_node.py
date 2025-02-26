@@ -18,6 +18,7 @@ from thrift.server import TServer
 
 
 # from coordinator import coordinator
+from coordinator import coordinator
 from coordinator.ttypes import WeightMatrices
 from compute import compute
 from ML import *
@@ -49,7 +50,7 @@ class CoordinatorHandler:
     Coordinator node acts as a client to compute node,
     and attempts to connect to compute nodes
     '''
-    def connet_compute_node_server(self, ip, port):
+    def connect_compute_node_server(self, ip, port):
         try:
             transport = TSocket.TSocket(ip, port)
             transport = TTransport.TBufferedTransport(transport)
@@ -59,7 +60,7 @@ class CoordinatorHandler:
             transport.open()
 
         except Exception as e:
-            print(f"Error: {e}")
+            print(f"Error in connecting to compute node: {e}")
             if 'transport' in locals():
                 transport.close()
             sys.exit(1)
@@ -108,14 +109,16 @@ class CoordinatorHandler:
                     
                     # If compute node rejects job, another compute node gets the job
                     if client.rejectTask():
+                        print("Compute node rejects")
                         transport.close()
                         return random.choice(self.compute_nodes)
                     else:
+                        print("Compute node accepts")
                         transport.close()
                         return node
                     
                 except Exception as e:
-                    print(f"Error: {e}")
+                    print(f"Error in compute connection during work scheduling: {e}")
                     if 'transport' in locals():
                         transport.close()
                     sys.exit(1)
@@ -141,45 +144,133 @@ class CoordinatorHandler:
         # client, transport = self.connet_compute_node_server()
 
         work_queue = self.populate_queue(dir)
+        print(work_queue)
                 
         # Randomly choose training set to initialize model
         random_training_set = random.choice(work_queue)
         
         model = mlp()
 
+        # print(f'k is {k}')
+        # print(f'h is {h}')
+
         # Initalize ML model with random weights of dimensions k and h
         success = model.init_training_random(random_training_set, k, h)
         if (success == False):
             raise Exception(f"Model initialization failed with file {random_training_set}")
         
-        def worker_thread():
-            try:
-                training_data = work_queue.pop()
-
-                # Get ip, port of available nodes
-                ip, port = self.work_scheduling()
-                # Attempt compute node connection
-                client, transport = self.connet_compute_node_server(ip, port)
-
-                # Package model weights
-                weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
-
-                gradient = client.trainMLP(weights, training_data, eta, epochs)
-
-
-
-            except:
-                pass
-
-        for r in range(rounds):
-            # Added extra rows to account for bias weights
-            shared_gradient_V = np.zeros(h + 1,k)
-            shared_gradient_W = np.zeros(k + 1, h)
-
+        # # Debug
+        # print(f"Initial V shape: {model.V.shape}, W shape: {model.W.shape}")
         
 
+        for r in range(rounds):
+            print(f"Starting round {r+ 1}/{rounds}")
+            shared_gradient_V = np.zeros((h + 1,k))
+            shared_gradient_W = np.zeros((model.W.shape[0], h))
+            jobs_completed = 0
+
+            # print(f"Shared_gradient_V shape: {shared_gradient_V.shape}, shared_gradient_W shape: {shared_gradient_W.shape}")
+
+
+
+            # create a lock for accessing the shared gradient vars
+            mutex = threading.Lock()
+
+            def worker_thread():
+                nonlocal jobs_completed
+                nonlocal shared_gradient_V, shared_gradient_W 
+            
+
+                try:
+                    if work_queue:
+                        print(len(work_queue))
+                        training_data = work_queue.pop()
+                    else:
+                        print("Work queue empty")
+
+                    # Get ip, port of available nodes
+                    ip, port = self.work_scheduling()
+
+                    # print(ip)
+                    # print(port)
+
+                    # Attempt compute node connection
+                    client, transport = self.connect_compute_node_server(ip, port)
+
+                    # Package model weights
+                    weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
+
+                    gradient = client.trainMLP(weights, training_data, eta, epochs)
+
+                    # print(f"Received gradient V shape: {np.array(gradient.V).shape}")
+                    # print(f"Received gradient W shape: {np.array(gradient.W).shape}")
+
+
+                    with mutex:
+                        shared_gradient_V += sum_matricies(shared_gradient_V, gradient.V)
+                        shared_gradient_W += sum_matricies(shared_gradient_W, gradient.W)
+                        jobs_completed += 1
+
+                    transport.close()
+
+                except Exception as e:
+                    print(f"Error in worker: {e}")
+                    # Failed job goes back into queue
+                    work_queue.append(training_data) 
+                    if 'transport' in locals():
+                        transport.close()
+
+            threads = []
+            num_nodes = len(self.compute_nodes)
+
+            # get the nodes going through the queue
+            for i in range(num_nodes):
+                thread = threading.Thread(target=worker_thread)
+                thread.start()
+                threads.append(thread)
+               
+
+            # wait for threads to work through the queue
+            for thread in threads:
+                thread.join()
+            
+            if jobs_completed > 0:
+                shared_gradient_V = scale_matricies(shared_gradient_V, 1.0 / jobs_completed)
+                shared_gradient_W = scale_matricies(shared_gradient_W, 1.0/ jobs_completed)
+
+
+            model.update_weights(shared_gradient_V, shared_gradient_W)
+            validation_error = model.validate(os.path.join(dir, "validate_letters.txt"))
+            print(f"Round {r + 1} validation error: {validation_error}")
+
+
+        return model.validate()
+    
+def main():
+    if len(sys.argv) != 3:
+        print("Usage: python coordinator_node.py <port> <scheduling_policy>")
+        sys.exit(1)
+
+    port = int(sys.argv[1])
+    scheduling_policy = int(sys.argv[2])
+    
+    if scheduling_policy not in [1, 2]:
+        print("Scheduling policy must be 1 (random scheduling) or 2 (load-balancing)")
+        sys.exit(1)
+    
+    handler = CoordinatorHandler(scheduling_policy)
+    processor = coordinator.Processor(handler)
+    transport = TSocket.TServerSocket(port=port)
+    tfactory = TTransport.TBufferedTransportFactory()
+    pfactory = TBinaryProtocol.TBinaryProtocolFactory()
+
+    server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
+
+    print(f"Starting coordinator on port {port} with scheduling policy {scheduling_policy}")
+    server.serve()
+
 if __name__ == '__main__':
-    obj = CoordinatorHandler(1)
+    main()
 
 
-    obj.train("letters", 10, 15, 4, 5, 7)
+    # obj.train("letters", 10, 15, 4, 5, 7)
