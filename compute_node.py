@@ -69,6 +69,7 @@ class ComputeNodeHandler:
     '''
     def loadInjection(self):
         if random.random() < self.load_probability:
+            print("Balancing load...")
             time.sleep(3)  # 3-second delay
     
     '''

@@ -69,12 +69,12 @@ def main():
     # Parameters for training MLP
     H = 20  # number of hidden units
     K = 26  # number of possible outcomes (26 letters)
-    eta = 0.001  # learning rate
+    eta = 0.0001  # learning rate
 
     try: 
         # Make socket
         transport = TSocket.TSocket(coordinator_ip, coordinator_port)
-        # transport = TSocket.TSocket("127.0.0.1", 9111)
+        # transport = TSocket.TSocket("127.0.0.1", 9878)
 
         # Buffering is critical. Raw sockets are very slow
         transport = TTransport.TBufferedTransport(transport)
@@ -84,24 +84,33 @@ def main():
 
         # Create a client to use the protocol encoder
         client = coordinator.Client(protocol)
+        # client = compute.Client(protocol)
 
         # Connect to coordinator node 
         transport.open()
 
         print("\nTraining in progress...")
 
-        # # Testing for Phase 1
+        
+
+        # # # Testing for Phase 1
         # model = mlp()
         # model.init_training_random("letters/train_letters1.txt", 26, 20)
         # weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
-        # client.trainMLP(weights,"letters/train_letters1.txt", 0.0001, 75)
 
+        # new_weight = client.trainMLP(weights,"letters/train_letters1.txt", 0.0001, 75)
+        # model.update_weights(new_weight.V, new_weight.W)
+        # validation_file = "letters/validate_letters.txt"
+        # validation_error = model.validate(validation_file)
 
         # Call the train function on the coordinator
         validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
 
         print(f"\nTraining complete!")
         print(f"Final validation error: {validation_error:.4f}")
+       
+
+        
 
         # Close!
         transport.close()
