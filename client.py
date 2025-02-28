@@ -53,8 +53,6 @@ from coordinator import coordinator
 from ML import *
 
 
-
-
 def main():
     if len(sys.argv) != 6:
         print("Usage: python3 client.py <coordinator_ip> <coordinator_port> <dir_path> <rounds> <epochs>")
@@ -85,16 +83,11 @@ def main():
 
         print("\nTraining in progress...")
 
-        start_time = time.perf_counter()
         # Call the train function on the coordinator
         validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
-        end_time = time.perf_counter()
-
-        elapsed_time = end_time - start_time
 
         print(f"\nTraining complete!")
         print(f"Final model validation error: {validation_error:.4f}")
-        print(f"Elapsed time: {elapsed_time} seconds")
 
         # Close!
         transport.close()
