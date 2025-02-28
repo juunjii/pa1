@@ -197,7 +197,6 @@ class CoordinatorHandler:
                     if work_queue:
                         training_data = work_queue.pop()
                     else:
-                        print("Work queue empty...Begin next round...")
                         break
                         
                     try:
