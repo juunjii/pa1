@@ -274,7 +274,10 @@ def main():
 
     server = TServer.TSimpleServer(processor, transport, tfactory, pfactory)
 
-    print(f"Starting coordinator on port {port} with scheduling policy {scheduling_policy}")
+    if scheduling_policy == 1:
+        print(f"Starting coordinator on port {port} with random sheduling")
+    else:
+        print(f"Starting coordinator on port {port} with load-balancing")
     server.serve()
 
 if __name__ == '__main__':
