@@ -30,6 +30,7 @@
 ##
 import sys
 import glob
+import time
 sys.path.append('gen-py')
 sys.path.insert(0, glob.glob('../thrift-0.19.0/lib/py/build/lib*')[0])
 # sys.path.insert(0, "/home/cheh0011/.local/lib/python3.x/site-packages")
@@ -74,29 +75,27 @@ def main():
     try: 
         # Make socket
         transport = TSocket.TSocket(coordinator_ip, coordinator_port)
-        # transport = TSocket.TSocket("127.0.0.1", 9878)
-
-        # Buffering is critical. Raw sockets are very slow
         transport = TTransport.TBufferedTransport(transport)
-
-        # Wrap in a protocol
         protocol = TBinaryProtocol.TBinaryProtocol(transport)
 
-        # Create a client to use the protocol encoder
         client = coordinator.Client(protocol)
-        # client = compute.Client(protocol)
 
         # Connect to coordinator node 
         transport.open()
 
         print("\nTraining in progress...")
 
+        start_time = time.perf_counter()
         # Call the train function on the coordinator
         validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
+        end_time = time.perf_counter()
+
+        elapsed_time = end_time - start_time
 
         print(f"\nTraining complete!")
         print(f"Final model validation error: {validation_error:.4f}")
-       
+        print(f"Elapsed time: {elapsed_time} seconds")
+
         # Close!
         transport.close()
 

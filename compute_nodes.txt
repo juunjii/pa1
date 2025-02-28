@@ -1,4 +1,4 @@
 localhost, 9878
 csel-kh1250-08.cselabs.umn.edu, 9092
-csel-kh1250-21.cselabs.umn.edu, 9093
-csel-kh1250-17.cselabs.umn.edu, 9094
+csel-kh1250-21.cselabs.umn.edu, 9095
+csel-kh1262-10.cselabs.umn.edu, 9094

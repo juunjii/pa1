@@ -47,7 +47,6 @@ class ComputeNodeHandler:
         training_error_rate = model.train(eta, epochs)
         if (training_error_rate == -1):
             raise Exception("Model training failed!")
-        print(f"-----Training Error Rate: {training_error_rate}")
 
         # New weights
         trained_V, trained_W = model.get_weights()
@@ -59,7 +58,7 @@ class ComputeNodeHandler:
         # Validation
         validation_file = "letters/validate_letters.txt"
         error_rate = model.validate(validation_file)
-        print(f"-----Validation Error Rate: {error_rate}")
+        print(f"Validation Error Rate: {error_rate}")
            
         return WeightMatrices(V=gradient_V.tolist(), W=gradient_W.tolist())
 

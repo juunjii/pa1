@@ -253,7 +253,7 @@ class CoordinatorHandler:
             validation_error = model.validate(os.path.join(dir, "validate_letters.txt"))
             print(f"Round {r + 1} validation error: {validation_error}")
 
-        return model.validate()
+        return validation_error
     
 def main():
     if len(sys.argv) != 3:
