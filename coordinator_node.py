@@ -62,12 +62,17 @@ class CoordinatorHandler:
 
         except Exception as e:
             print(f"Error in connecting to compute node: {e}")
+            # Close connection if exist in local scope 
             if 'transport' in locals():
                 transport.close()
             sys.exit(1)
 
         return client, transport
     
+    '''
+    Populate the work queue containing training data files 
+    for the compute node to train the model
+    '''
     def populate_queue(self, dir):
         # Sanitize input
         if not dir or not os.path.exists(dir) or not os.path.isdir(dir):
@@ -84,6 +89,10 @@ class CoordinatorHandler:
 
         return work_queue
     
+    '''
+    Populate a list of training data files for initial 
+    initialization of the training model
+    '''
     def populate_list(self, dir):
         # Sanitize input
         if not dir or not os.path.exists(dir) or not os.path.isdir(dir):
@@ -141,8 +150,6 @@ class CoordinatorHandler:
                     sys.exit(1)
 
   
-
-        
     '''
     Runs a series of training rounds, where the entire training dataset is trained in 
     batches on separate compute nodes, with the gradient from each batch averaged and updated 
@@ -157,74 +164,46 @@ class CoordinatorHandler:
     eta: learning rate of model (0.0001)
     '''
     def train(self, dir, rounds, epochs, h, k, eta):
-        # Connect to compute node
-        # client, transport = self.connet_compute_node_server()
-
-        # work_queue = self.populate_queue(dir)
-        # print(f'Work queue: {work_queue}')
-                
-        # Randomly choose training set to initialize model
-
+      
         work_list = self.populate_list(dir)
-
+        # Randomly choose training set to initialize model
         random_training_set = random.choice(work_list)
         
         # Central model
         model = mlp()
-
-        # print(f'k is {k}')
-        # print(f'h is {h}')
 
         # Initalize ML model with random weights of dimensions k and h
         success = model.init_training_random(random_training_set, k, h)
         if (success == False):
             raise Exception(f"Model initialization failed with file {random_training_set}")
         
-        # # Debug
-        # print(f"Initial V shape: {model.V.shape}, W shape: {model.W.shape}")
-        
         for r in range(rounds):
             print(f"Starting round {r+ 1}/{rounds}")
         
-            # print(f"Shared_gradient_V shape: {shared_gradient_V.shape}, shared_gradient_W shape: {shared_gradient_W.shape}")
-
             # create a lock for accessing the shared gradient vars
             mutex = threading.Lock()
             shared_gradient_V = np.zeros((h + 1,k))
             shared_gradient_W = np.zeros((model.W.shape[0], h))
-            # shared_gradient_W = np.zeros((k+1, h))
-
-            # Test
-            # shared_gradient_V = np.zeros_like(model.V)
-            # shared_gradient_W = np.zeros_like(model.W)
+    
             jobs_completed = 0
 
             work_queue = self.populate_queue(dir)
-
-            # shared_weights = model.get_weights()
 
             def worker_thread():
                 nonlocal jobs_completed
                 nonlocal shared_gradient_V, shared_gradient_W 
         
                 while True:
-                    
                     if work_queue:
-                        # print(f'Work queue: {len(work_queue)}')
                         training_data = work_queue.pop()
-                        # random_number = random.randint(0, 10)
-                        # queue_list = list(work_queue)
-                        # training_data = queue_list[random_number]   
                     else:
-                        print("Work queue empty...Begin next round")
+                        print("Work queue empty...Begin next round...")
                         break
                         
                     try:
                         # Get ip, port of available nodes
                         ip, port = self.work_scheduling()
                         print(f"Training model with data: {training_data} at {ip}....")
-                        # print(ip)
-                        # print(port)
 
                         # Attempt compute node connection
                         client, transport = self.connect_compute_node_server(ip, port)
@@ -232,37 +211,14 @@ class CoordinatorHandler:
                         # Package new model weights 
                         weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
 
-                        
-                        # print(f"!!Weight norm: {np.linalg.norm(weights.V)}")
-                        # print(f"!!Weight norm: {np.linalg.norm(weights.W)}")
-
                         # Train MLP model 
                         gradient = client.trainMLP(weights, training_data, eta, epochs)
 
-                        # print(f"Received gradient V shape: {np.array(gradient.V).shape}")
-                        # print(f"Received gradient W shape: {np.array(gradient.W).shape}")
-
-                        # print(f"Train Gradient V norm: {np.linalg.norm(gradient.V)}")
-                        # print(f"Train Gradient W norm: {np.linalg.norm(gradient.W)}")
-
                         with mutex:
-                            # Update the sahred gradient 
-                            # shared_gradient_V += sum_matricies(shared_gradient_V, gradient.V)
-                            # shared_gradient_W += sum_matricies(shared_gradient_W, gradient.W)
-                            # Test
+                            # Update the shared gradient
                             shared_gradient_V = sum_matricies(shared_gradient_V, gradient.V)
                             shared_gradient_W = sum_matricies(shared_gradient_W, gradient.W)
-
-                            # shared_gradient_V += np.array(gradient.V)
-                            # shared_gradient_W += np.array(gradient.W)
                             jobs_completed += 1
-
-
-                            # # Print norm of gradients to check magnitude
-                            # print(f"Shared Gradient V norm: {np.linalg.norm(shared_gradient_V)}")
-                            # print(f"Shared Gradient W norm: {np.linalg.norm(shared_gradient_W)}")
-
-
 
                         transport.close()
 
@@ -276,35 +232,26 @@ class CoordinatorHandler:
             threads = []
             num_nodes = len(self.compute_nodes)
 
-            # get the nodes going through the queue
+            # Get the minimum amount of threads (compute nodes) for jobs
             for i in range(min(num_nodes, len(work_list))):
                 thread = threading.Thread(target=worker_thread)
                 thread.start()
                 threads.append(thread)
-               
-
-            # wait for threads to work through the queue
+            
+            # Wait for threads to work through the queue
             for thread in threads:
                 thread.join()
             
             if jobs_completed > 0:
                 # Average of weights
                 shared_gradient_V = scale_matricies(shared_gradient_V, 1.0/jobs_completed)
-                # print(f"Shared gradient V: {shared_gradient_V}")
-
                 shared_gradient_W = scale_matricies(shared_gradient_W, 1.0/jobs_completed)
-                # print(f"Shared gradient W: {shared_gradient_W}")
 
-                # # Print norm of gradients to check magnitude
-                # print(f"Gradient V norm: {np.linalg.norm(shared_gradient_V)}")
-                # print(f"Gradient W norm: {np.linalg.norm(shared_gradient_W)}")
-                # print("Weights updated..")
+                # Update model with trained weights
                 model.update_weights(shared_gradient_V, shared_gradient_W)
           
-            # model.update_weights(shared_gradient_V, shared_gradient_W)
             validation_error = model.validate(os.path.join(dir, "validate_letters.txt"))
             print(f"Round {r + 1} validation error: {validation_error}")
-
 
         return model.validate()
     

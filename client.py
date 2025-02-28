@@ -91,27 +91,12 @@ def main():
 
         print("\nTraining in progress...")
 
-        
-
-        # # # Testing for Phase 1
-        # model = mlp()
-        # model.init_training_random("letters/train_letters1.txt", 26, 20)
-        # weights = WeightMatrices(V = model.V.tolist(), W = model.W.tolist())
-
-        # new_weight = client.trainMLP(weights,"letters/train_letters1.txt", 0.0001, 75)
-        # model.update_weights(new_weight.V, new_weight.W)
-        # validation_file = "letters/validate_letters.txt"
-        # validation_error = model.validate(validation_file)
-
         # Call the train function on the coordinator
         validation_error = client.train(dir_path, rounds, epochs, H, K, eta)
 
         print(f"\nTraining complete!")
-        print(f"Final validation error: {validation_error:.4f}")
+        print(f"Final model validation error: {validation_error:.4f}")
        
-
-        
-
         # Close!
         transport.close()
 
